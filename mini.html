@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menstrual Cycle Tracker</title>
+  <style>
+    :root {
+      --bg-color: #fff0f5;
+      --card-color: #ffffff;
+      --text-color: #444;
+      --highlight-color: #d63384;
+      --box-color: #ffe6f0;
+    }
+
+    body.dark-mode {
+      --bg-color: #1e1e2f;
+      --card-color: #2c2c3a;
+      --text-color: #f0f0f0;
+      --highlight-color: #ff69b4;
+      --box-color: #3c3c5c;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 0;
+      color: var(--text-color);
+    }
+    .container {
+      max-width: 500px;
+      margin: 60px auto;
+      background-color: var(--card-color);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 16px rgba(255, 105, 180, 0.2);
+      text-align: center;
+    }
+    h1 {
+      color: var(--highlight-color);
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+      font-size: 16px;
+    }
+    input[type="date"], input[type="text"] {
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid var(--highlight-color);
+      border-radius: 10px;
+      font-size: 16px;
+      width: 100%;
+    }
+    .symptoms label {
+      font-weight: normal;
+      display: block;
+      text-align: left;
+    }
+    button {
+      background-color: var(--highlight-color);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background-color: #c2185b;
+    }
+    .result-box, .countdown-box, .mood-box, .alert-box, .history-box, .tips-box, .cycle-chart-box {
+      margin-top: 20px;
+      font-size: 16px;
+      background: var(--box-color);
+      padding: 15px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌸 Menstrual Cycle Tracker</h1>
+
+    <label for="periodDate">Enter Last Period Date:</label>
+    <input type="date" id="periodDate" />
+
+    <label for="mood">How are you feeling today? 😊</label>
+    <input type="text" id="mood" placeholder="e.g., Happy, Tired, Moody..." />
+
+    <label>Any Symptoms Today?</label>
+    <div class="symptoms">
+      <label><input type="checkbox" value="Cramps" /> 😖 Cramps</label>
+      <label><input type="checkbox" value="Nausea" /> 🤢 Nausea</label>
+      <label><input type="checkbox" value="Mood Swings" /> 😡 Mood Swings</label>
+      <label><input type="checkbox" value="Fatigue" /> 💤 Fatigue</label>
+      <label><input type="checkbox" value="Headache" /> 💔 Headache</label>
+    </div>
+
+    <button onclick="trackCycle()">Track</button>
+    <button onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+
+    <div id="result" class="result-box"></div>
+    <div id="countdown" class="countdown-box"></div>
+    <div id="alert" class="alert-box"></div>
+    <div id="moodDisplay" class="mood-box"></div>
+    <div id="tips" class="tips-box"></div>
+    <div id="history" class="history-box"></div>
+    <div id="chart" class="cycle-chart-box"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    function trackCycle() {
+      const periodInput = document.getElementById("periodDate").value;
+      const moodInput = document.getElementById("mood").value.trim();
+      const symptomCheckboxes = document.querySelectorAll(".symptoms input[type='checkbox']");
+      const selectedSymptoms = Array.from(symptomCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+
+      const resultBox = document.getElementById("result");
+      const countdownBox = document.getElementById("countdown");
+      const alertBox = document.getElementById("alert");
+      const moodDisplay = document.getElementById("moodDisplay");
+      const tipsBox = document.getElementById("tips");
+      const historyBox = document.getElementById("history");
+
+      if (!periodInput) {
+        resultBox.innerHTML = "Please enter your last period date.";
+        return;
+      }
+
+      const lastPeriod = new Date(periodInput);
+      const today = new Date();
+      const cycleLength = 28;
+      const nextPeriod = new Date(lastPeriod);
+      nextPeriod.setDate(lastPeriod.getDate() + cycleLength);
+
+      const fertileStart = new Date(lastPeriod);
+      fertileStart.setDate(lastPeriod.getDate() + 10);
+
+      const fertileEnd = new Date(lastPeriod);
+      fertileEnd.setDate(lastPeriod.getDate() + 16);
+
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+
+      resultBox.innerHTML = `
+        <p><strong>Next Period Date:</strong> ${nextPeriod.toLocaleDateString(undefined, options)}</p>
+        <p><strong>Fertile Window:</strong> ${fertileStart.toLocaleDateString(undefined, options)} to ${fertileEnd.toLocaleDateString(undefined, options)}</p>
+        <p><strong>Cycle Length:</strong> ${cycleLength} days</p>
+      `;
+
+      const daysLeft = Math.ceil((nextPeriod - today) / (1000 * 60 * 60 * 24));
+      countdownBox.innerHTML = `<p>⏳ <strong>${daysLeft}</strong> days until your next period</p>`;
+
+      const daysSinceLast = Math.ceil((today - lastPeriod) / (1000 * 60 * 60 * 24));
+      if (daysSinceLast > 35) {
+        alertBox.innerHTML = `
+          <p style="color: red;"><strong>⚠️ You may have missed your period!</strong></p>
+          <p>Please consult a doctor. Eat healthy, sleep well, and manage stress 💖</p>
+        `;
+      } else {
+        alertBox.innerHTML = "";
+      }
+
+      if (moodInput) {
+        moodDisplay.innerHTML = `<p><strong>Today's Mood:</strong> ${moodInput} 💕</p>`;
+      } else {
+        moodDisplay.innerHTML = "";
+      }
